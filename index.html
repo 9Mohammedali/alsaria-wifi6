@@ -69,8 +69,7 @@
       max-width: 980px;
       margin: auto;
     }
-    .card,
-    .modal-content {
+    .card, .modal-content {
       background: white;
       border-radius: 13px;
       padding: 1.2rem 1.2rem 1.5rem 1.2rem;
@@ -281,7 +280,6 @@
       direction: ltr;
       color: #1976d2;
     }
-    /* Responsive & permission table tweaks */
     #permissions-modal .modal-content {
       max-width: 99vw;
       width: 99vw;
@@ -329,7 +327,7 @@
   </style>
 </head>
 <body>
-  <!-- شاشة الانتظار -->
+  <!-- شاشة اللودر -->
   <div id="loader">
     <div class="loader-content">
       <div class="spinner"></div>
@@ -403,7 +401,6 @@
         <button id="logout-btn" class="header-action-btn" title="خروج">&#x1F511;</button>
       </div>
     </header>
-
     <!-- نافذة صلاحيات المستخدمين -->
     <div id="permissions-modal" class="modal">
       <div class="modal-content">
@@ -491,14 +488,18 @@
       </div>
     </div>
   </div>
-  <script type="module">
-// تابع الجزء الثاني من الكود في الرسالة التالي
-//==الجافاسكريبت (الجزء الثاني) مع تعديلات الأرباح==
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, query, where, serverTimestamp, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, createUserWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+  <script type="module" src="mod.js">
+// ========== شاشة اللودر ==========
+function showLoader(msg) {
+  document.getElementById("loader").style.display = "flex";
+  document.querySelector("#loader span").textContent = msg || "الرجاء الانتظار قليلاً...";
+}
+function hideLoader() {
+  document.getElementById("loader").style.display = "none";
+}
+// ========== نهاية شاشة اللودر ==========
 
-// إعدادات الفيربيس
+// إعدادات Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyDwWMM-R4v02BfIcviIPxz5Q9qu-OIQXTQ",
   authDomain: "alsaria-net.firebaseapp.com",
@@ -509,12 +510,6 @@ const firebaseConfig = {
   measurementId: "G-NWLYRWSQBH"
 };
 const OWNER_EMAIL = "alsaria-net";
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
-
-// ثوابت البرنامج
 const categories = ["100", "200", "250", "500", "1000", "1500", "2000", "3000", "4000"];
 const prices = {
   "100": 100, "200": 200, "250": 250, "500": 500, "1000": 1000,
@@ -525,26 +520,32 @@ const colors = {
   "1500": "f1500", "2000": "f2000", "3000": "f3000", "4000": "f4000"
 };
 
+// Firebase imports
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, query, where, serverTimestamp, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, createUserWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+// Firebase init
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+// متغيرات عامة
 let saleCounters = {};
 let cardsData = {};
 let userData = null;
 let usersMap = {};
 let soldContent = "";
 let soldCategory = "";
+let lastSellMsg = "";
 
-// Toast & Loader
-function showLoader(msg) {
-  document.getElementById("loader").style.display = "flex";
-  document.querySelector("#loader span").textContent = msg || "الرجاء الانتظار قليلاً...";
-}
-function hideLoader() { document.getElementById("loader").style.display = "none"; }
-
+// Toast & Loader functions
 function showToast(msg, type="success") {
   const toast = document.getElementById("toast");
-  toast.className = "toast toast-" + (type === "success" ? "success" : (type === "error" ? "error" : "warning"));
   toast.textContent = msg;
+  toast.style.background = (type==="error") ? "#e53935" : "#43a047";
   toast.classList.add("show");
-  setTimeout(()=>{ toast.classList.remove("show"); }, 2900);
+  setTimeout(()=>{ toast.classList.remove("show"); }, 2500);
 }
 
 // نافذة منبثقة موحدة للإغلاق
@@ -559,7 +560,7 @@ window.addEventListener('mousedown', function(e){
   });
 });
 
-// تسجيل الدخول
+// ========== تسجيل الدخول ==========
 window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('login-btn').onclick = async () => {
     const email = document.getElementById('email').value.trim();
@@ -596,7 +597,7 @@ window.addEventListener('DOMContentLoaded', () => {
   };
 });
 
-// إنشاء حساب
+// ========== إنشاء حساب ==========
 function generateAccountNumber() {
   return Math.floor(100 + Math.random() * 900);
 }
@@ -621,7 +622,6 @@ document.getElementById("create-account-btn").onclick = async () => {
   const name = document.getElementById("reg-name").value.trim();
   const email = document.getElementById("reg-email").value.trim();
   const password = document.getElementById("reg-password").value.trim();
-  const phone = document.getElementById("reg-phone").value.trim();
   if (!email || !password) {
     document.getElementById("reg-error").textContent = "يرجى تعبئة البريد وكلمة السر";
     return;
@@ -634,7 +634,6 @@ document.getElementById("create-account-btn").onclick = async () => {
       uid: userCredential.user.uid,
       email,
       name,
-      phone,
       balance: 0,
       profit: 0,
       role: "user",
@@ -656,7 +655,7 @@ document.getElementById("create-account-btn").onclick = async () => {
   }
 };
 
-// استعادة كلمة المرور
+// ========== استعادة كلمة المرور ==========
 document.getElementById('forgot-btn').onclick = () => {
   document.getElementById("forgot-modal").style.display = "flex";
   document.getElementById("forgot-error").textContent = "";
@@ -683,7 +682,7 @@ document.getElementById("send-reset-btn").onclick = async () => {
   }
 };
 
-// متابعة حالة تسجيل الدخول
+// ========== متابعة حالة تسجيل الدخول ==========
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     showLoader("جاري تحميل البيانات...");
@@ -715,6 +714,7 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
+// ========== تحميل المستخدمين (جدول الصلاحيات) ==========
 async function loadUsers() {
   usersMap = {};
   const snap = await getDocs(collection(db, "users"));
@@ -725,6 +725,7 @@ async function loadUsers() {
   });
 }
 
+// ========== واجهة ما بعد الدخول ==========
 async function postLoginUI() {
   document.getElementById('auth-section').style.display = "none";
   document.getElementById('main-section').style.display = "";
@@ -736,161 +737,7 @@ async function postLoginUI() {
   document.getElementById("add-cards-icon").style.display = (isOwner || userData.permissions?.addCards) ? "inline-block" : "none";
 }
 
-// صلاحيات المستخدمين
-async function renderUsersTable() {
-  const usersSnap = await getDocs(collection(db, "users"));
-  let html = `<div id="users-table-wrap"><table>
-    <tr>
-      <th>اسم المستخدم</th>
-      <th>البريد</th>
-      <th>رقم الحساب</th>
-      <th>إدخال كروت</th>
-      <th>بيع كروت</th>
-      <th>سجلات العمليات</th>
-      <th>تحويل رصيد</th>
-      <th>تحديث</th>
-    </tr>`;
-  usersSnap.forEach(doc => {
-    const u = doc.data();
-    if(u.role === "owner") return;
-    let shortMail = "";
-    if (u.email) {
-      const [local, domain] = u.email.split("@");
-      shortMail = local.slice(0, 4) + '...' + '@' + domain.split('.')[0] + '.com';
-    }
-    html += `<tr>
-      <td>${u.name || "-"}</td>
-      <td>
-        <span class="email-short" data-full="${u.email}">
-          ${shortMail}
-        </span>
-      </td>
-      <td>${u.accountNumber}</td>
-      <td><input type="checkbox" ${u.permissions?.addCards ? "checked" : ""} id="addCards-${doc.id}"></td>
-      <td><input type="checkbox" ${u.permissions?.sellCards ? "checked" : ""} id="sellCards-${doc.id}"></td>
-      <td>
-        <select id="seeAllLogs-${doc.id}">
-          <option value="own" ${u.permissions?.seeAllLogs ? "" : "selected"}>سجله فقط</option>
-          <option value="all" ${u.permissions?.seeAllLogs ? "selected" : ""}>جميع السجلات</option>
-        </select>
-      </td>
-      <td><input type="checkbox" ${u.permissions?.transfer ? "checked" : ""} id="transfer-${doc.id}"></td>
-      <td><button onclick="updateUserPermissions('${doc.id}')">تحديث</button></td>
-    </tr>`;
-  });
-  html += "</table></div>";
-  document.getElementById("users-table").innerHTML = html;
-  document.querySelectorAll('.email-short').forEach(span => {
-    span.onclick = function() {
-      showToast(this.getAttribute('data-full'), "success");
-    };
-    span.style.cursor = "pointer";
-    span.title = "اضغط لعرض البريد كامل";
-    span.style.textDecoration = "underline dotted";
-    span.style.direction = "ltr";
-    span.style.color = "#1976d2";
-  });
-}
-window.updateUserPermissions = async function(docid) {
-  showLoader("جاري تحديث الصلاحيات...");
-  const addCards = document.getElementById(`addCards-${docid}`).checked;
-  const sellCards = document.getElementById(`sellCards-${docid}`).checked;
-  const seeAllLogs = document.getElementById(`seeAllLogs-${docid}`).value === "all";
-  const transfer = document.getElementById(`transfer-${docid}`).checked;
-  await updateDoc(doc(db, "users", docid), {
-    permissions: { addCards, sellCards, seeAllLogs, transfer }
-  });
-  showToast("تم تحديث الصلاحيات", "success");
-  await loadUsers();
-  await renderUsersTable();
-  hideLoader();
-};
-
-// وظائف التطبيق
-async function initApp() {
-  renderSalesButtons();
-  await updateStats();
-  await updateTotal();
-  // ... يمكنك إضافة أي تهيئة أخرى هنا ...
-}
-
-// أيقونات رأس الصفحة
-document.getElementById("permissions-btn").onclick = async () => {
-  await renderUsersTable();
-  document.getElementById("permissions-modal").style.display = "flex";
-};
-document.getElementById("transfer-btn-head").onclick = () => {
-  document.getElementById("transfer-modal").style.display = "flex";
-};
-document.getElementById("add-cards-icon").onclick = () => {
-  document.getElementById("add-cards-modal").style.display = "flex";
-};
-document.getElementById("close-add-cards").onclick = () => {
-  document.getElementById("add-cards-modal").style.display = "none";
-};
-
-// نافذة تحويل الرصيد
-document.getElementById("transfer-btn-modal").onclick = async () => {
-  if (userData.role !== "owner" && !userData.permissions?.transfer) {
-    showToast("ليست لديك صلاحية تحويل الرصيد.", "error");
-    return;
-  }
-  const accNum = document.getElementById('transfer-acc').value.trim();
-  const amount = parseInt(document.getElementById('transfer-amount').value.trim());
-  document.getElementById('transfer-result').textContent = "";
-  if (!accNum || isNaN(amount) || amount <= 0) {
-    document.getElementById('transfer-result').textContent = "يرجى إدخال رقم حساب صحيح ومبلغ أكبر من صفر";
-    showToast("يرجى إدخال بيانات صحيحة.", "error");
-    return;
-  }
-  showLoader("جاري تحويل الرصيد...");
-  const q = query(collection(db, "users"), where("accountNumber", "==", parseInt(accNum)));
-  const snap = await getDocs(q);
-  if (snap.empty) {
-    document.getElementById('transfer-result').textContent = "لم يتم العثور على مستخدم بهذا الرقم";
-    showToast("لم يتم العثور على المستخدم.", "error");
-    hideLoader();
-    return;
-  }
-  const userDoc = snap.docs[0];
-  const userRef = doc(db, "users", userDoc.id);
-  const balanceNow = userDoc.data().balance || 0;
-  await updateDoc(userRef, { balance: balanceNow + amount });
-  await addDoc(collection(db, "transfers"), {
-    from: userData.uid,
-    to: userDoc.data().uid,
-    toAccount: userDoc.data().accountNumber,
-    toEmail: userDoc.data().email,
-    toName: userDoc.data().name || "",
-    amount,
-    date: (new Date()).toLocaleDateString(),
-    time: (new Date()).toLocaleTimeString(),
-    at: serverTimestamp()
-  });
-  document.getElementById('transfer-result').textContent = "تم تحويل الرصيد بنجاح";
-  showToast("تم تحويل الرصيد بنجاح", "success");
-  await loadUsers();
-  hideLoader();
-};
-
-// إحصائيات الكروت
-async function updateStats() {
-  cardsData = {};
-  for (let cat of categories) cardsData[cat] = [];
-  const q = query(collection(db, "cards"), where("sold", "==", false));
-  const snapshot = await getDocs(q);
-  snapshot.forEach(docx => {
-    const d = docx.data();
-    if (categories.includes(d.category)) cardsData[d.category].push({ id: docx.id, code: d.code });
-  });
-  const stats = document.getElementById("card-stats");
-  stats.innerHTML = "";
-  categories.forEach(cat => {
-    const count = cardsData[cat].length;
-    stats.innerHTML += `<div class="stat-circle ${colors[cat]}">${cat}<br><span>${count}</span></div>`;
-  });
-}
-
+// ========== أزرار البيع ==========
 function renderSalesButtons() {
   const container = document.getElementById("sales-buttons");
   container.innerHTML = "";
@@ -914,7 +761,7 @@ window.adjustCount = function(cat, delta) {
   document.getElementById(`sell-${cat}`).disabled = saleCounters[cat] === 0;
 };
 
-// هنا منطق البيع مع الأرباح
+// ========== بيع الكروت ==========
 window.sellCards = async function(cat) {
   if (userData.role !== "owner" && !userData.permissions?.sellCards) {
     showToast("ليست لديك صلاحية بيع الكروت.", "error");
@@ -926,9 +773,7 @@ window.sellCards = async function(cat) {
     return;
   }
   let price = prices[cat] * count;
-  let payAmount = userData.role === "owner" ? price : Math.floor(price * 0.8);
-  let profitEarned = userData.role === "owner" ? 0 : price - payAmount;
-  if (userData.role !== "owner" && (userData.balance ?? 0) < payAmount) {
+  if (userData.role !== "owner" && (userData.balance ?? 0) < price) {
     showToast("رصيدك غير كافٍ لإتمام هذه العملية.", "error");
     return;
   }
@@ -947,27 +792,19 @@ window.sellCards = async function(cat) {
         soldAt: serverTimestamp(),
         user: userData.uid,
         userEmail: userData.email,
-        userName: userData.name || "",
-        sellPrice: payAmount,
-        profit: profitEarned
+        userName: userData.name || ""
       });
     }
     if (userData.role !== "owner") {
-      userData.balance = (userData.balance ?? 0) - payAmount;
-      userData.profit = (userData.profit ?? 0) + profitEarned;
-      await updateDoc(doc(db, "users", userData._docid), { 
-        balance: userData.balance, 
-        profit: userData.profit 
-      });
+      userData.balance = (userData.balance ?? 0) - price;
+      await updateDoc(doc(db, "users", userData._docid), { balance: userData.balance });
       document.getElementById("user-balance").textContent = `رصيدك الحالي: ${userData.balance} ريال`;
-      document.getElementById("user-profit-value").textContent = userData.profit;
     }
     await updateStats();
-    await updateTotal();
     saleCounters[cat] = 0;
     document.getElementById(`count-${cat}`).textContent = 0;
     document.getElementById(`sell-${cat}`).disabled = true;
-    showModal(cat, sold.map(e => e.code), payAmount, profitEarned);
+    showSellMessage(cat, count, sold.map(e => e.code));
     showToast("تم بيع الكروت بنجاح!", "success");
     hideLoader();
   } catch (e) {
@@ -976,58 +813,82 @@ window.sellCards = async function(cat) {
   }
 };
 
-document.getElementById("add-cards-btn").onclick = async () => {
-  if (userData.role !== "owner" && !userData.permissions?.addCards) {
-    showToast("ليست لديك صلاحية إدخال الكروت.", "error");
-    return;
-  }
-  const cat = document.getElementById("card-category").value;
-  const lines = document.getElementById("cards-input").value.trim().split("\n").filter(Boolean);
-  if (!lines.length) return showToast("لم يتم إدخال أي كروت.", "error");
-  showLoader("جاري حفظ الكروت...");
-  try {
-    for (let code of lines) {
-      await addDoc(collection(db, "cards"), { code, category: cat, sold: false });
-    }
-    document.getElementById("cards-input").value = "";
-    await updateStats();
-    document.getElementById("add-cards-modal").style.display = "none";
-    showToast("تم حفظ الكروت بنجاح.", "success");
-    hideLoader();
-  } catch(e) {
-    hideLoader();
-    showToast("حدث خطأ أثناء حفظ الكروت", "error");
-  }
-};
-
-async function updateTotal() {
-  const q = query(collection(db, "salesLog"));
-  const snapshot = await getDocs(q);
-  let total = 0;
-  snapshot.forEach(docx => {
-    const d = docx.data();
-    if (prices[d.category]) total += prices[d.category];
-  });
-  if (userData.role === "owner" || (userData.email && userData.email.includes(OWNER_EMAIL))) {
-    document.getElementById("user-balance").innerHTML += ` | <span style="color:#0288d1;">إجمالي المبيعات: <strong>${total} ريال</strong></span>`;
-  }
-}
-
-// عرض نافذة الكروت المباعة مع الأرباح
-function showModal(cat, codes, sellPrice=0, profit=0) {
-  soldContent = codes.join('\n');
-  soldCategory = cat;
-  document.getElementById("modal-title").textContent = `الكروت المباعة (${cat})`;
-  document.getElementById("modal-cards-list").textContent = soldContent;
-  let extra = "";
-  if (sellPrice && userData.role !== "owner") {
-    extra = `<div style="color:#0288d1; font-size:15px; margin:8px 0;">قيمة البيع: <b>${sellPrice} ريال</b><br>ربحك: <b>${profit} ريال</b></div>`;
-  }
-  document.getElementById("modal-cards-list").insertAdjacentHTML('afterend', extra);
+function showSellMessage(category, count, codesArr) {
+  let msg = `تم شراء عدد ${count} كرت من فئة ${category} ريال\nالأكواد:\n${codesArr.join('\n')}`;
+  lastSellMsg = msg;
+  document.getElementById("modal-title").textContent = `الكروت المباعة (${category})`;
+  document.getElementById("modal-cards-list").textContent = msg;
   document.getElementById("result-modal").style.display = "flex";
 }
+document.getElementById("close-modal").onclick = () => {
+  document.getElementById("result-modal").style.display = "none";
+};
+document.getElementById("copy-sold").onclick = () => {
+  navigator.clipboard.writeText(lastSellMsg); showToast("تم نسخ الرسالة!");
+};
+document.getElementById("whatsapp-sold").onclick = () => {
+  window.open(`https://wa.me/?text=${encodeURIComponent(lastSellMsg)}`, "_blank");
+};
 
-  </script>
-  </script>
+// ========== البحث في سجل العمليات ==========
+document.getElementById("search-box").oninput = function() {
+  renderSalesLog(this.value);
+};
+
+async function renderSalesLog(filter = "") {
+  const q = query(collection(db, "salesLog"), orderBy("soldAt", "desc"));
+  const snapshot = await getDocs(q);
+  let logs = [];
+  snapshot.forEach(docx => {
+    const d = docx.data();
+    logs.push(d);
+  });
+  let isOwner = userData.role === "owner" || (userData.email && userData.email.includes(OWNER_EMAIL));
+  let canSeeAll = isOwner || userData.permissions?.seeAllLogs;
+  let filtered = logs.filter(log => {
+    if (!canSeeAll && log.user !== userData.uid && log.userEmail !== userData.email) return false;
+    if (!filter) return true;
+    let f = filter.trim();
+    return (log.code && log.code.includes(f)) ||
+           (log.category && log.category.includes(f)) ||
+           (log.userName && log.userName.includes(f));
+  });
+  let html = filtered.map(log =>
+    `<tr>
+      <td>${log.code || "-"}</td>
+      <td>${log.category || "-"}</td>
+      <td>${log.date || "-"}</td>
+      <td>${log.time || "-"}</td>
+      <td>${log.userName || "-"}</td>
+    </tr>`
+  ).join("");
+  document.getElementById("sales-log").innerHTML = html || `<tr><td colspan="5">لا توجد نتائج.</td></tr>`;
+}
+
+// ========== إحصائيات الكروت ==========
+async function updateStats() {
+  cardsData = {};
+  for (let cat of categories) cardsData[cat] = [];
+  const q = query(collection(db, "cards"), where("sold", "==", false));
+  const snapshot = await getDocs(q);
+  snapshot.forEach(docx => {
+    const d = docx.data();
+    if (categories.includes(d.category)) cardsData[d.category].push({ id: docx.id, code: d.code });
+  });
+  const stats = document.getElementById("card-stats");
+  stats.innerHTML = "";
+  categories.forEach(cat => {
+    const count = cardsData[cat].length;
+    stats.innerHTML += `<div class="stat-circle ${colors[cat]}">${cat}<br><span>${count}</span></div>`;
+  });
+}
+
+// ========== تهيئة التطبيق ==========
+async function initApp() {
+  renderSalesButtons();
+  await updateStats();
+  await renderSalesLog();
+}
+</script>
 </body>
 </html>
